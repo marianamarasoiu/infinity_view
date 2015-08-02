@@ -75,9 +75,14 @@ class InfinityView {
       }
     }
 
+    if (_pages.length == 0) {
+      return;
+    }
     // Append first two pages
     _container.append(_pages[0]);
-    _container.append(_pages[1]);
+    if (_pages.length > 1) {
+      _container.append(_pages[1]);
+    }
     _currentPageIndex = 0;
 
     _pageHeight = _pages[0].clientHeight;
