@@ -1,0 +1,23 @@
+#data-selector-window {
+    padding: 10px;
+    border: 1px solid #999;
+    position: fixed;
+    width: 550px;
+    height: 550px;
+    overflow-y: scroll;
+}
+
+.selector-items-container {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.item {
+    width: 100px;
+    height: 100px;
+    margin: 5px;
+    padding: 0;
+    background: #ffffff;
+    display: inline-block;
+}
