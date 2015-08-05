@@ -31,7 +31,7 @@ class InfinityView {
 
   /// The pages with the elements. We display maximum of three at a time:
   /// the current page, and one page beforehand and one page afterwards.
-  List<DivElement> _pages;
+  List<List<DivElement>> _pages;
 
   /// The total number of items to be displayed.
   int _itemCount;
@@ -60,18 +60,15 @@ class InfinityView {
     int pagesCount = (_itemCount / itemsPerPage).ceil();
 
     for (int i = 0; i < pagesCount; i++) {
-      DivElement page = _blankDiv();
-      page.classes.add('page');
-      page.style.height = 'auto';
-      page.attributes['data-infinity-page'] = '${i}';
-      _pages.add(page);
+      List pageItems = [];
+      _pages.add(pageItems);
 
       int start = i * itemsPerPage;
       int end = math.min((i + 1) * itemsPerPage, _itemDataList.length);
 
       for (int j = start; j < end; j++) {
         DivElement item = _itemElementFromData(_itemDataList[j]);
-        page.append(item);
+        pageItems.add(item);
       }
     }
 
@@ -79,13 +76,13 @@ class InfinityView {
       return;
     }
     // Append first two pages
-    _container.append(_pages[0]);
+    appendPageInContainer(0, _container);
     if (_pages.length > 1) {
-      _container.append(_pages[1]);
+      appendPageInContainer(1, _container);
     }
     _currentPageIndex = 0;
 
-    _pageHeight = _pages[0].clientHeight;
+    _pageHeight = _container.querySelector('.page').clientHeight;
     _container.style.height = '${pagesCount * _pageHeight}px';
     _container.parent.onMouseWheel.listen(_scrollHandler);
   }
@@ -95,14 +92,15 @@ class InfinityView {
   /// of the scroll.
   void _scrollHandler(WheelEvent e) {
     int newPageIndex = _currentPageIndex;
+    DivElement currentPage = _container.querySelector('.page[data-infinity-page="${_currentPageIndex}"');
     // Jump to the next page, unless we're at the last one already
     if (e.deltaY > 0.0 &&
-        _atBottomOfWindow(_container.parent, _pages[_currentPageIndex])) {
+        _atBottomOfWindow(_container.parent, currentPage)) {
       newPageIndex = math.min(_currentPageIndex + 1, _pages.length - 1);
     }
     // Jump to the previous page, unless we're at the first one already
     if (e.deltaY < 0.0 &&
-        _atTopOfWindow(_container.parent, _pages[_currentPageIndex])) {
+        _atTopOfWindow(_container.parent, currentPage)) {
       newPageIndex = math.max(_currentPageIndex - 1, 0);
     }
     if (newPageIndex != _currentPageIndex) {
@@ -131,7 +129,7 @@ class InfinityView {
       if (_currentPageIndex != _pages.length - 1) {
         nodeToRemoveIndex = math.min(_currentPageIndex + 1, _pages.length - 1);
       }
-      if (_currentPageIndex != 0) {
+      if (newPageIndex != 0) {
         nodeToAddIndex = math.max(newPageIndex - 1, 0);
         prependInsteadOfAdd = true;
       }
@@ -139,26 +137,50 @@ class InfinityView {
     _currentPageIndex = newPageIndex;
 
     if (nodeToRemoveIndex != null) {
-      _container.nodes.removeWhere((e) {
+      DivElement nodeToRemove = _container.nodes.firstWhere((e) {
         if (e is DivElement && e.attributes.containsKey('data-infinity-page')) {
           int id = int.parse(e.attributes['data-infinity-page']);
           return id == nodeToRemoveIndex;
         }
       });
+      nodeToRemove.nodes.clear();
+      nodeToRemove.remove();
     }
 
     if (nodeToAddIndex != null) {
       if (prependInsteadOfAdd) {
         // The node we insert should be after the filler node.
         int insertIndex = _container.nodes.indexOf(_preFiller) + 1;
-        _container.nodes.insert(insertIndex, _pages[nodeToAddIndex]);
+        insertPageInContainer(nodeToAddIndex, insertIndex, _container);
       } else {
-        _container.append(_pages[nodeToAddIndex]);
+        appendPageInContainer(nodeToAddIndex, _container);
       }
     }
 
     int fillerHeight = math.max(_currentPageIndex - 1, 0) * _pageHeight;
     _preFiller.style.height = '${fillerHeight}px';
+  }
+
+  DivElement _pageDiv(int index) {
+    DivElement page = _blankDiv();
+    page.classes.add('page');
+    page.style.height = 'auto';
+    page.attributes['data-infinity-page'] = '${index}';
+
+    for (int i = 0; i < _pages[index].length; i++) {
+      page.append(_pages[index][i]);
+    }
+    return page;
+  }
+
+  void appendPageInContainer(int pageIndex, DivElement container) {
+    DivElement page = _pageDiv(pageIndex);
+    container.append(page);
+  }
+
+  void insertPageInContainer(int pageIndex, int atIndex, DivElement container) {
+    DivElement page = _pageDiv(pageIndex);
+    container.nodes.insert(atIndex, page);
   }
 }
 
